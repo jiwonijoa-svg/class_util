@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>쑥쑥 자라는 우리 반 뽀모도로 타이머</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- 교실 맨 뒤에서도 선명하고 귀여운 구글 둥근 폰트 (Gaegu & Jua) -->
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Round:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* 공통 변수 */
+      --font-main: 'Jua', 'Nanum Round', -apple-system, sans-serif;
+      --font-digit: 'Jua', monospace;
+      --transition-smooth: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+      
+      /* 집중 모드 테마 (소프트 민트 & 스카이블루) */
+      --bg-gradient-focus: linear-gradient(135deg, #e8f7f2 0%, #d8eff8 100%);
+      --primary-focus: #3da88e;
+      --primary-focus-dark: #2c856f;
+      --accent-focus: #5cc2aa;
+      --card-focus: rgba(255, 255, 255, 0.85);
+      --ring-track-focus: #c8ece1;
+      --ring-progress-focus: #3da88e;
+      
+      /* 휴식 모드 테마 (따뜻한 레몬 옐로우 & 파스텔 핑크) */
+      --bg-gradient-break: linear-gradient(135deg, #fff7db 0%, #ffe8ed 100%);
+      --primary-break: #ff7e8e;
+      --primary-break-dark: #e85c6d;
+      --accent-break: #ffb47d;
+      --card-break: rgba(255, 255, 255, 0.9);
+      --ring-track-break: #ffe0e5;
+      --ring-progress-break: #ff7e8e;
+      
+      /* 현재 활성 테마 색상 (기본 집중 모드) */
+      --theme-bg: var(--bg-gradient-focus);
+      --theme-primary: var(--primary-focus);
+      --theme-primary-dark: var(--primary-focus-dark);
+      --theme-accent: var(--accent-focus);
+      --theme-card: var(--card-focus);
+      --theme-ring-track: var(--ring-track-focus);
+      --theme-ring-progress: var(--ring-progress-focus);
+      --theme-shadow: 0 16px 40px rgba(61, 168, 142, 0.15);
+    }
+
+    body.mode-break {
+      --theme-bg: var(--bg-gradient-break);
+      --theme-primary: var(--primary-break);
+      --theme-primary-dark: var(--primary-break-dark);
+      --theme-accent: var(--accent-break);
+      --theme-card: var(--card-break);
+      --theme-ring-track: var(--ring-track-break);
+      --theme-ring-progress: var(--ring-progress-break);
+      --theme-shadow: 0 16px 40px rgba(255, 126, 142, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background: var(--theme-bg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      color: #334155;
+      overflow-x: hidden;
+      transition: background 0.6s ease;
+      position: relative;
+    }
+
+    /* 상단 헤더 */
+    header {
+      width: 100%;
+      max-width: 1300px;
+      padding: 18px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+    }
+
+    .brand-title {
+      font-size: clamp(1.4rem, 2.5vw, 2.1rem);
+      font-weight: 800;
+      color: var(--theme-primary-dark);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      transition: color 0.4s ease;
+    }
+
+    .brand-title span.badge {
+      font-size: 0.9rem;
+      background: var(--theme-primary);
+      color: #ffffff;
+      padding: 4px 12px;
+      border-radius: 999px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      letter-spacing: 0.5px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .icon-btn {
+      background: #ffffff;
+      border: 2px solid rgba(0, 0, 0, 0.06);
+      border-radius: 18px;
+      padding: 10px 16px;
+      font-size: 1.1rem;
+      font-family: var(--font-main);
+      color: #475569;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+      transition: var(--transition-smooth);
+    }
+    .icon-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+      border-color: var(--theme-primary);
+      color: var(--theme-primary);
+    }
+    .icon-btn:active {
+      transform: translateY(1px);
+    }
+
+    /* 메인 컨테이너 */
+    main {
+      width: 100%;
+      max-width: 1300px;
+      padding: 10px 24px 24px;
+      display: grid;
+      grid-template-columns: 1fr 1.25fr;
+      gap: 36px;
+      align-items: center;
+      flex: 1;
+      z-index: 10;
+    }
+
+    @media (max-width: 992px) {
+      main {
+        grid-template-columns: 1fr;
+        gap: 24px;
+        padding-top: 0;
+      }
+    }
+
+    /* 왼쪽: 캐릭터 및 인터랙션 카드 */
+    .character-card {
+      background: var(--theme-card);
+      backdrop-filter: blur(12px);
+      border-radius: 36px;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--theme-shadow);
+      border: 3px solid rgba(255, 255, 255, 0.9);
+      position: relative;
+      min-height: 480px;
+      overflow: hidden;
+      transition: var(--transition-smooth);
+    }
+
+    .status-bubble {
+      background: #ffffff;
+      border: 2px solid var(--theme-primary);
+      color: var(--theme-primary-dark);
+      padding: 12px 24px;
+      border-radius: 24px;
+      font-size: clamp(1.1rem, 1.8vw, 1.4rem);
+      font-weight: 700;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+      position: relative;
+      margin-bottom: 24px;
+      text-align: center;
+      animation: gentle-float 3s ease-in-out infinite;
+      z-index: 5;
+    }
+    .status-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 10px 10px 0;
+      border-style: solid;
+      border-color: var(--theme-primary) transparent;
+      display: block;
+      width: 0;
+    }
+
+    /* 캐릭터 무대 */
+    .character-stage {
+      width: 100%;
+      max-width: 340px;
+      height: 320px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .svg-character {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.08));
+    }
+
+    /* 오른쪽: 타이머 및 조작 패널 */
+    .timer-panel {
+      background: var(--theme-card);
+      backdrop-filter: blur(12px);
+      border-radius: 36px;
+      padding: 36px 32px;
+      box-shadow: var(--theme-shadow);
+      border: 3px solid rgba(255, 255, 255, 0.9);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      transition: var(--transition-smooth);
+    }
+
+    /* 모드 전환 탭 토글 */
+    .mode-tab-group {
+      display: flex;
+      background: rgba(0, 0, 0, 0.05);
+      padding: 6px;
+      border-radius: 24px;
+      gap: 8px;
+      width: 100%;
+      max-width: 440px;
+    }
+    .mode-tab {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 20px;
+      border: none;
+      font-family: var(--font-main);
+      font-size: 1.15rem;
+      cursor: pointer;
+      font-weight: 700;
+      color: #64748b;
+      background: transparent;
+      transition: var(--transition-smooth);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .mode-tab.active {
+      background: #ffffff;
+      color: var(--theme-primary-dark);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      transform: scale(1.02);
+    }
+
+    /* 원형 타이머 뷰포트 */
+    .timer-display-container {
+      position: relative;
+      width: min(340px, 78vw);
+      height: min(340px, 78vw);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 4px 0;
+    }
+    .timer-svg {
+      transform: rotate(-90deg);
+      width: 100%;
+      height: 100%;
+    }
+    .timer-circle-bg {
+      fill: none;
+      stroke: var(--theme-ring-track);
+      stroke-width: 18;
+      transition: stroke 0.4s ease;
+    }
+    .timer-circle-progress {
+      fill: none;
+      stroke: var(--theme-ring-progress);
+      stroke-width: 18;
+      stroke-linecap: round;
+      stroke-dasharray: 879.64; /* 2 * PI * 140 */
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.8s ease, stroke 0.4s ease;
+    }
+
+    .timer-text-wrap {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .timer-digits {
+      font-family: var(--font-digit);
+      font-size: clamp(3.8rem, 8vw, 5.2rem);
+      font-weight: 800;
+      color: #1e293b;
+      line-height: 1;
+      letter-spacing: 2px;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .timer-label {
+      font-size: 1.15rem;
+      color: #64748b;
+      margin-top: 6px;
+      font-weight: 700;
+    }
+
+    /* 프리셋 칩 목록 */
+    .preset-group {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+    }
+    .preset-btn {
+      background: #ffffff;
+      border: 2px solid rgba(0, 0, 0, 0.07);
+      border-radius: 16px;
+      padding: 9px 18px;
+      font-family: var(--font-main);
+      font-size: 1.1rem;
+      color: #475569;
+      cursor: pointer;
+      font-weight: 700;
+      transition: var(--transition-smooth);
+    }
+    .preset-btn:hover {
+      background: var(--theme-primary);
+      border-color: var(--theme-primary);
+      color: #ffffff;
+      transform: translateY(-2px);
+    }
+    .preset-btn.active {
+      background: var(--theme-primary);
+      color: #ffffff;
+      border-color: var(--theme-primary);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    }
+
+    /* 직접 시간 입력 팝오버 토글 영역 */
+    .custom-time-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1rem;
+      color: #64748b;
+    }
+    .custom-input {
+      width: 64px;
+      padding: 6px 8px;
+      border: 2px solid #cbd5e1;
+      border-radius: 12px;
+      font-family: var(--font-digit);
+      font-size: 1.15rem;
+      text-align: center;
+      color: #334155;
+      outline: none;
+      transition: border 0.3s;
+    }
+    .custom-input:focus {
+      border-color: var(--theme-primary);
+    }
+    .custom-btn {
+      padding: 6px 14px;
+      background: #f1f5f9;
+      border: none;
+      border-radius: 12px;
+      font-family: var(--font-main);
+      font-size: 0.95rem;
+      cursor: pointer;
+      color: #475569;
+      font-weight: 700;
+      transition: var(--transition-smooth);
+    }
+    .custom-btn:hover {
+      background: var(--theme-primary);
+      color: #fff;
+    }
+
+    /* 대형 컨트롤 버튼 (재생, 정지, 리셋) */
+    .action-controls {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      width: 100%;
+      max-width: 420px;
+    }
+    .btn-main {
+      flex: 2;
+      background: var(--theme-primary);
+      color: #ffffff;
+      border: none;
+      padding: 16px 28px;
+      border-radius: 24px;
+      font-family: var(--font-main);
+      font-size: 1.5rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transition: var(--transition-smooth);
+    }
+    .btn-main:hover {
+      background: var(--theme-primary-dark);
+      transform: translateY(-3px) scale(1.01);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+    }
+    .btn-main:active {
+      transform: translateY(1px);
+    }
+    .btn-secondary {
+      flex: 1;
+      background: #ffffff;
+      border: 2px solid #e2e8f0;
+      color: #64748b;
+      padding: 16px 20px;
+      border-radius: 24px;
+      font-family: var(--font-main);
+      font-size: 1.25rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: var(--transition-smooth);
+    }
+    .btn-secondary:hover {
+      border-color: #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      transform: translateY(-2px);
+    }
+
+    /* 하단 사운드바 & 교실 BGM 설정 도구 */
+    footer {
+      width: 100%;
+      max-width: 1300px;
+      padding: 12px 24px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      z-index: 10;
+    }
+
+    .audio-dock {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(8px);
+      padding: 10px 20px;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+      border: 1px solid rgba(255,255,255,0.8);
+      flex-wrap: wrap;
+    }
+
+    .audio-select {
+      border: 2px solid #e2e8f0;
+      background: #ffffff;
+      padding: 8px 14px;
+      border-radius: 14px;
+      font-family: var(--font-main);
+      font-size: 0.95rem;
+      color: #334155;
+      outline: none;
+      cursor: pointer;
+      transition: border 0.2s;
+    }
+    .audio-select:focus {
+      border-color: var(--theme-primary);
+    }
+
+    .volume-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .volume-slider {
+      -webkit-appearance: none;
+      width: 90px;
+      height: 6px;
+      background: #cbd5e1;
+      border-radius: 6px;
+      outline: none;
+      accent-color: var(--theme-primary);
+      cursor: pointer;
+    }
+
+    .file-upload-label {
+      background: #f1f5f9;
+      padding: 7px 12px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: #475569;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: var(--transition-smooth);
+    }
+    .file-upload-label:hover {
+      background: #e2e8f0;
+      color: #1e293b;
+    }
+    #local-audio-input {
+      display: none;
+    }
+
+    /* =========================================================================
+       정교한 SVG 캐릭터 스타일 및 Keyframes
+       ========================================================================= */
+    /* 1. 집중 모드 캐릭터 */
+    .bear-focus {
+      transform-origin: bottom center;
+      animation: gentle-focus 4s ease-in-out infinite;
+    }
+    .bear-head {
+      transform-origin: 150px 140px;
+      animation: nod-reading 4s ease-in-out infinite;
+    }
+    .eyelid {
+      transform-origin: center;
+      animation: blink 4s infinite;
+    }
+    .pencil-hand {
+      transform-origin: 195px 230px;
+      animation: pencil-scratch 0.9s ease-in-out infinite alternate;
+    }
+    .floating-bulb {
+      animation: float-sparkle 3s ease-in-out infinite;
+    }
+
+    @keyframes gentle-focus {
+      0%, 100% { transform: scale(1.0); }
+      50% { transform: scale(1.018) translateY(-2px); }
+    }
+    @keyframes nod-reading {
+      0%, 100% { transform: rotate(0deg); }
+      30% { transform: rotate(1.8deg) translateY(1.5px); }
+      70% { transform: rotate(-1.5deg) translateY(1px); }
+    }
+    @keyframes blink {
+      0%, 92%, 100% { transform: scaleY(1); }
+      95% { transform: scaleY(0.08); }
+    }
+    @keyframes pencil-scratch {
+      0% { transform: rotate(-3deg) translateX(-1px); }
+      100% { transform: rotate(4deg) translateX(3px); }
+    }
+    @keyframes float-sparkle {
+      0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.85; }
+      50% { transform: translateY(-8px) rotate(6deg); opacity: 1; }
+    }
+
+    /* 2. 쉬는 시간 캐릭터 */
+    .bear-break {
+      transform-origin: bottom center;
+      animation: happy-stretch 3.5s ease-in-out infinite;
+    }
+    .arms-stretch {
+      transform-origin: 150px 200px;
+      animation: stretch-dance 2s ease-in-out infinite alternate;
+    }
+    .ears-wiggle {
+      transform-origin: 150px 100px;
+      animation: ear-bounce 2s ease-in-out infinite alternate;
+    }
+    .floating-bubble-note {
+      animation: bubble-up 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    @keyframes happy-stretch {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      25% { transform: translateY(-4px) rotate(-2deg); }
+      75% { transform: translateY(-4px) rotate(2deg); }
+    }
+    @keyframes stretch-dance {
+      0% { transform: translateY(0) scaleY(1); }
+      100% { transform: translateY(-7px) scaleY(1.06); }
+    }
+    @keyframes ear-bounce {
+      0% { transform: rotate(-2deg); }
+      100% { transform: rotate(2deg); }
+    }
+    @keyframes bubble-up {
+      0% { transform: translateY(15px) scale(0.6); opacity: 0; }
+      40% { opacity: 0.9; }
+      100% { transform: translateY(-40px) scale(1.1); opacity: 0; }
+    }
+
+    /* 3. 종료 축하 모드 캐릭터 */
+    .character-celebrate {
+      animation: celebrate-jump 0.65s ease-in-out infinite alternate !important;
+    }
+    @keyframes celebrate-jump {
+      0% { transform: translateY(0) scale(1, 1); }
+      40% { transform: translateY(4px) scale(1.05, 0.95); }
+      100% { transform: translateY(-32px) scale(0.96, 1.05); }
+    }
+
+    @keyframes gentle-float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    /* 컨페티(종이가루) 캔버스 레이어 */
+    #confetti-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 999;
+      display: none;
+    }
+
+    /* 펄스 애니메이션 (타이머 종료 직전) */
+    .timer-warning {
+      animation: pulse-warn 1s ease-in-out infinite alternate;
+    }
+    @keyframes pulse-warn {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.03); color: #ef4444; }
+    }
+
+    /* 축하 토스트 팝업 */
+    .celebration-toast {
+      position: fixed;
+      top: 30px;
+      background: #ffffff;
+      padding: 16px 36px;
+      border-radius: 999px;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.18);
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--primary-break-dark);
+      border: 3px solid #ffccd3;
+      z-index: 1000;
+      display: none;
+      animation: toast-in 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+    }
+    @keyframes toast-in {
+      0% { transform: translateY(-100px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 폭죽/컨페티 캔버스 -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- 축하 팝업 배너 -->
+  <div id="celebrate-banner" class="celebration-toast">
+    🎉 정말 멋져요! 집중 시간을 멋지게 마쳤어요! 🌟
+  </div>
+
+  <!-- 상단 네비게이션 헤더 -->
+  <header>
+    <div class="brand-title">
+      <span>🐻 우리 반 뽀모도로</span>
+      <span class="badge" id="mode-badge">집중 쏙쏙</span>
+    </div>
+    <div class="header-controls">
+      <button class="icon-btn" id="btn-fullscreen" title="대형 전자칠판 전체화면">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+        </svg>
+        <span>전체화면</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 중앙 메인 작업 영역 -->
+  <main>
+    <!-- 1. 캐릭터 인터랙션 카드 -->
+    <section class="character-card">
+      <div class="status-bubble" id="char-speech">
+        생각이 쑥쑥 자라는 중! 조용히 집중해 볼까요? ✨
+      </div>
+
+      <div class="character-stage" id="stage-area">
+        <!-- SVG 곰돌이 캐릭터 (집중 모드 / 쉬는 모드 상태 전환 지원) -->
+        <svg class="svg-character" id="main-character-svg" viewBox="0 0 300 300">
+          <defs>
+            <!-- 그림자 필터 -->
+            <filter id="soft-shadow" x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#845a3e" flood-opacity="0.15"/>
+            </filter>
+            <!-- 곰돌이 부드러운 브라운 그라데이션 -->
+            <radialGradient id="bearSkin" cx="40%" cy="35%" r="70%">
+              <stop offset="0%" stop-color="#f5d3a2" />
+              <stop offset="100%" stop-color="#d9a76c" />
+            </radialGradient>
+            <!-- 볼터치 그라데이션 -->
+            <radialGradient id="blushGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#ff7f99" stop-opacity="0.75" />
+              <stop offset="100%" stop-color="#ff7f99" stop-opacity="0" />
+            </radialGradient>
+          </defs>
+
+          <!-- 주변 플로팅 효과 요소들 (집중: 전구/별 / 휴식: 음표/하트) -->
+          <g id="fx-elements">
+            <!-- 집중 모드 플로팅 요소 (기본) -->
+            <g class="floating-bulb" transform="translate(42, 60)">
+              <circle cx="12" cy="12" r="10" fill="#fff3b0" />
+              <polygon points="12,2 14,9 21,12 14,15 12,22 10,15 3,12 10,9" fill="#fcd34d" />
+            </g>
+            <g class="floating-bulb" style="animation-delay: 1.5s;" transform="translate(235, 75)">
+              <polygon points="12,4 14,10 20,12 14,14 12,20 10,14 4,12 10,10" fill="#fcd34d" />
+            </g>
+          </g>
+
+          <!-- 곰돌이 본체 컨테이너 -->
+          <g id="bear-root" class="bear-focus">
+            <!-- 꼬리/발받침 -->
+            <ellipse cx="150" cy="285" rx="90" ry="12" fill="#d0c7bb" opacity="0.35" />
+
+            <!-- 귀 (왼쪽, 오른쪽) -->
+            <g class="ears-wiggle">
+              <circle cx="95" cy="88" r="28" fill="url(#bearSkin)" filter="url(#soft-shadow)"/>
+              <circle cx="95" cy="88" r="16" fill="#fbdcd4" />
+              <circle cx="205" cy="88" r="28" fill="url(#bearSkin)" filter="url(#soft-shadow)"/>
+              <circle cx="205" cy="88" r="16" fill="#fbdcd4" />
+            </g>
+
+            <!-- 몸통 -->
+            <path d="M 100,180 C 85,245 100,270 150,270 C 200,270 215,245 200,180 Z" fill="url(#bearSkin)" filter="url(#soft-shadow)"/>
+            <!-- 배 털 -->
+            <ellipse cx="150" cy="225" rx="35" ry="32" fill="#fff1df" />
+
+            <!-- 머리 그룹 -->
+            <g class="bear-head" id="bear-head-group">
+              <circle cx="150" cy="140" r="62" fill="url(#bearSkin)" filter="url(#soft-shadow)"/>
+
+              <!-- 귀여운 주둥이 영역 -->
+              <ellipse cx="150" cy="154" rx="28" ry="21" fill="#fff1df" />
+              <ellipse cx="150" cy="145" rx="9" ry="6" fill="#543621" />
+              
+              <!-- 기본 입 (미소) -->
+              <path id="bear-mouth" d="M 144,152 Q 150,158 156,152" stroke="#543621" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+              <!-- 볼터치 (양쪽) -->
+              <circle cx="112" cy="152" r="14" fill="url(#blushGlow)" />
+              <circle cx="188" cy="152" r="14" fill="url(#blushGlow)" />
+
+              <!-- 눈 (깜빡임 애니메이션 연결) -->
+              <g id="bear-eyes" class="eyelid">
+                <circle cx="126" cy="132" r="6.5" fill="#2d1c14" />
+                <circle cx="128" cy="130" r="2.2" fill="#ffffff" />
+                <circle cx="174" cy="132" r="6.5" fill="#2d1c14" />
+                <circle cx="176" cy="130" r="2.2" fill="#ffffff" />
+              </g>
+
+              <!-- 집중 모드용 안경 (동적 숨김/표시 가능) -->
+              <g id="acc-glasses">
+                <circle cx="126" cy="132" r="15" fill="none" stroke="#2563eb" stroke-width="3" opacity="0.85" />
+                <circle cx="174" cy="132" r="15" fill="none" stroke="#2563eb" stroke-width="3" opacity="0.85" />
+                <line x1="141" y1="132" x2="159" y2="132" stroke="#2563eb" stroke-width="3" opacity="0.85" />
+              </g>
+
+              <!-- 휴식 모드용 헤드폰 (기본 hidden) -->
+              <g id="acc-headphones" style="display: none;">
+                <path d="M 90,135 A 62,62 0 0,1 210,135" fill="none" stroke="#ff5c8a" stroke-width="6" stroke-linecap="round"/>
+                <rect x="80" y="120" width="16" height="32" rx="8" fill="#ff7597" />
+                <rect x="204" y="120" width="16" height="32" rx="8" fill="#ff7597" />
+              </g>
+            </g>
+
+            <!-- 책과 연필 (집중 모드 소품) -->
+            <g id="props-focus">
+              <!-- 펼쳐진 책 -->
+              <path d="M 110,250 Q 150,245 150,265 Q 150,245 190,250 L 195,275 Q 150,270 150,285 Q 150,270 105,275 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+              <path d="M 115,256 L 145,256 M 115,263 L 142,263 M 155,256 L 185,256 M 158,263 L 185,263" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>
+              <!-- 왼쪽 손 -->
+              <circle cx="118" cy="245" r="13" fill="url(#bearSkin)"/>
+              <!-- 오른쪽 손 & 연필 사각사각 -->
+              <g class="pencil-hand">
+                <circle cx="182" cy="242" r="13" fill="url(#bearSkin)"/>
+                <!-- 작은 연필 -->
+                <polygon points="182,238 174,212 181,210 188,236" fill="#f59e0b" />
+                <polygon points="174,212 178,202 181,210" fill="#fde68a" />
+                <polygon points="177,204 178,202 179,203" fill="#1e293b" />
+              </g>
+            </g>
+
+            <!-- 휴식 모드용 활짝 뻗은 양팔 소품 (기본 hidden) -->
+            <g id="props-break" class="arms-stretch" style="display: none;">
+              <!-- 왼쪽 펼친 팔 -->
+              <ellipse cx="90" cy="195" rx="14" ry="32" fill="url(#bearSkin)" transform="rotate(35 90 195)" filter="url(#soft-shadow)"/>
+              <!-- 오른쪽 펼친 팔 -->
+              <ellipse cx="210" cy="195" rx="14" ry="32" fill="url(#bearSkin)" transform="rotate(-35 210 195)" filter="url(#soft-shadow)"/>
+              <!-- 꼬물꼬물 발 -->
+              <ellipse cx="120" cy="265" rx="16" ry="12" fill="url(#bearSkin)" />
+              <ellipse cx="180" cy="265" rx="16" ry="12" fill="url(#bearSkin)" />
+            </g>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <!-- 2. 타이머 조작 패널 -->
+    <section class="timer-panel">
+      <!-- 모드 탭 -->
+      <div class="mode-tab-group">
+        <button class="mode-tab active" id="tab-focus" data-mode="focus">
+          <span>✏️</span> 집중 쏙쏙
+        </button>
+        <button class="mode-tab" id="tab-break" data-mode="break">
+          <span>🌿</span> 신나는 쉬는 시간
+        </button>
+      </div>
+
+      <!-- 원형 프로그레스 및 대형 숫자 타이머 -->
+      <div class="timer-display-container">
+        <svg class="timer-svg" viewBox="0 0 320 320">
+          <circle class="timer-circle-bg" cx="160" cy="160" r="140"></circle>
+          <circle class="timer-circle-progress" id="progress-ring" cx="160" cy="160" r="140"></circle>
+        </svg>
+        <div class="timer-text-wrap">
+          <div class="timer-digits" id="timer-display">25:00</div>
+          <div class="timer-label" id="timer-status-label">차분하게 몰입해 봐요</div>
+        </div>
+      </div>
+
+      <!-- 모드별 프리셋 버튼 -->
+      <div class="preset-group" id="preset-container">
+        <!-- JS로 현재 모드에 따라 프리셋 동적 렌더링 -->
+      </div>
+
+      <!-- 수동 분/초 입력창 -->
+      <div class="custom-time-row">
+        <span>직접 설정:</span>
+        <input type="number" id="custom-minutes" class="custom-input" min="1" max="99" value="25" placeholder="분"> 분
+        <input type="number" id="custom-seconds" class="custom-input" min="0" max="59" value="00" placeholder="초"> 초
+        <button class="custom-btn" id="btn-set-custom">적용</button>
+      </div>
+
+      <!-- 대형 시작/일시정지 및 리셋 버튼 -->
+      <div class="action-controls">
+        <button class="btn-main" id="btn-toggle">
+          <svg id="play-icon" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <span id="btn-toggle-label">시작하기</span>
+        </button>
+        <button class="btn-secondary" id="btn-reset" title="처음 시간으로 되돌리기">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+          <span>리셋</span>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- 하단 음악 및 오디오 제어 바 -->
+  <footer>
+    <div class="audio-dock">
+      <span style="font-size: 1.2rem;">🎵 감성 사운드:</span>
+      <select class="audio-select" id="bgm-select">
+        <option value="none">음악 없음 (조용히)</option>
+        <option value="rain-chime" selected>1. 차분한 빗소리와 실로폰 (집중)</option>
+        <option value="music-box">2. 햇살 가득 산책길 (오르골 감성)</option>
+        <option value="lofi-ambient">3. 포근한 휴식 & 로파이 비트 (힐링)</option>
+        <option value="custom" id="custom-audio-option" disabled>📁 내가 올린 음악</option>
+      </select>
+
+      <div class="volume-wrap">
+        <button class="icon-btn" id="btn-mute" style="padding: 6px 10px; border-radius: 12px;" title="음소거">
+          <span id="mute-icon">🔊</span>
+        </button>
+        <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.05" value="0.5" title="소리 크기 조절">
+      </div>
+
+      <!-- 로컬 파일 업로드 -->
+      <label class="file-upload-label" for="local-audio-input">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <span>내 오디오 파일 등록</span>
+      </label>
+      <input type="file" id="local-audio-input" accept="audio/*">
+    </div>
+
+    <div style="font-size: 0.95rem; color: #64748b; font-weight: 700;">
+      🏫 대형 전자칠판 최적화 모드 지원
+    </div>
+  </footer>
+
+  <script>
+    /* =========================================================================
+       1. 타이머 상태 및 비즈니스 로직
+       ========================================================================= */
+    const FOCUS_PRESETS = [10, 15, 20, 25, 40];
+    const BREAK_PRESETS = [5, 10, 15];
+
+    const FOCUS_MESSAGES = [
+      "생각이 쑥쑥 자라는 중! 조용히 집중해 볼까요? ✏️",
+      "한 문제 한 문제 차근차근 해결해 봐요! 💡",
+      "우리 반 모두의 집중하는 모습이 참 멋져요! 🌟",
+      "스스로 해내는 기쁨을 느껴보세요 📚"
+    ];
+
+    const BREAK_MESSAGES = [
+      "창밖을 보며 눈을 쉬어주세요 🌿",
+      "가볍게 기지개를 켜볼까요? 손을 위로 쭉! 😊",
+      "친구들과 방긋 웃으며 시원한 물 한잔 마셔요 💧",
+      "머리를 식히고 재충전하는 시간이에요 🎈"
+    ];
+
+    let currentMode = 'focus'; // 'focus' | 'break'
+    let totalSeconds = 25 * 60;
+    let remainingSeconds = 25 * 60;
+    let isRunning = false;
+    let timerInterval = null;
+    let speechInterval = null;
+
+    // DOM 요소 캐싱
+    const bodyEl = document.body;
+    const timerDisplay = document.getElementById('timer-display');
+    const timerStatusLabel = document.getElementById('timer-status-label');
+    const progressRing = document.getElementById('progress-ring');
+    const btnToggle = document.getElementById('btn-toggle');
+    const btnToggleLabel = document.getElementById('btn-toggle-label');
+    const playIcon = document.getElementById('play-icon');
+    const btnReset = document.getElementById('btn-reset');
+    const tabFocus = document.getElementById('tab-focus');
+    const tabBreak = document.getElementById('tab-break');
+    const presetContainer = document.getElementById('preset-container');
+    const charSpeech = document.getElementById('char-speech');
+    const modeBadge = document.getElementById('mode-badge');
+    const btnFullscreen = document.getElementById('btn-fullscreen');
+    const customMinInput = document.getElementById('custom-minutes');
+    const customSecInput = document.getElementById('custom-seconds');
+    const btnSetCustom = document.getElementById('btn-set-custom');
+
+    // 캐릭터 SVG 부품
+    const bearRoot = document.getElementById('bear-root');
+    const accGlasses = document.getElementById('acc-glasses');
+    const accHeadphones = document.getElementById('acc-headphones');
+    const propsFocus = document.getElementById('props-focus');
+    const propsBreak = document.getElementById('props-break');
+    const fxElements = document.getElementById('fx-elements');
+    const bearMouth = document.getElementById('bear-mouth');
+    const bearEyes = document.getElementById('bear-eyes');
+    const celebrateBanner = document.getElementById('celebrate-banner');
+
+    // 원형 프로그레스 계산: r=140 -> 둘레 2 * Math.PI * 140 = 879.64
+    const CIRCUMFERENCE = 2 * Math.PI * 140;
+    progressRing.style.strokeDasharray = `${CIRCUMFERENCE} ${CIRCUMFERENCE}`;
+
+    function updateProgressRing() {
+      if (totalSeconds <= 0) return;
+      const progressRatio = remainingSeconds / totalSeconds;
+      const offset = CIRCUMFERENCE - (progressRatio * CIRCUMFERENCE);
+      progressRing.style.strokeDashoffset = offset;
+    }
+
+    function formatTime(secs) {
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function renderDisplay() {
+      timerDisplay.textContent = formatTime(remainingSeconds);
+      updateProgressRing();
+
+      // 마지막 10초 카운트다운 강조
+      if (isRunning && remainingSeconds > 0 && remainingSeconds <= 10) {
+        timerDisplay.classList.add('timer-warning');
+      } else {
+        timerDisplay.classList.remove('timer-warning');
+      }
+    }
+
+    // 모드 프리셋 렌더링
+    function renderPresets() {
+      presetContainer.innerHTML = '';
+      const presets = currentMode === 'focus' ? FOCUS_PRESETS : BREAK_PRESETS;
+      presets.forEach(min => {
+        const btn = document.createElement('button');
+        btn.className = `preset-btn ${totalSeconds === min * 60 ? 'active' : ''}`;
+        btn.textContent = `${min}분`;
+        btn.addEventListener('click', () => {
+          setDuration(min * 60);
+          document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        });
+        presetContainer.appendChild(btn);
+      });
+    }
+
+    function setDuration(secs) {
+      pauseTimer();
+      totalSeconds = secs;
+      remainingSeconds = secs;
+      customMinInput.value = Math.floor(secs / 60);
+      customSecInput.value = secs % 60;
+      renderDisplay();
+    }
+
+    function switchMode(newMode) {
+      if (currentMode === newMode) return;
+      currentMode = newMode;
+
+      if (currentMode === 'focus') {
+        bodyEl.classList.remove('mode-break');
+        tabFocus.classList.add('active');
+        tabBreak.classList.remove('active');
+        modeBadge.textContent = '집중 쏙쏙';
+        timerStatusLabel.textContent = '차분하게 몰입해 봐요';
+        applyCharacterFocusVisuals();
+        setDuration(25 * 60);
+      } else {
+        bodyEl.classList.add('mode-break');
+        tabBreak.classList.add('active');
+        tabFocus.classList.remove('active');
+        modeBadge.textContent = '신나는 쉬는 시간';
+        timerStatusLabel.textContent = '편안하게 스트레칭해요';
+        applyCharacterBreakVisuals();
+        setDuration(5 * 60);
+      }
+
+      renderPresets();
+      updateSpeechBubble(true);
+    }
+
+    function updateSpeechBubble(immediate = false) {
+      const list = currentMode === 'focus' ? FOCUS_MESSAGES : BREAK_MESSAGES;
+      const randomMsg = list[Math.floor(Math.random() * list.length)];
+      charSpeech.textContent = randomMsg;
+    }
+
+    /* 캐릭터 상태별 비주얼 적용 */
+    function applyCharacterFocusVisuals() {
+      bearRoot.className = 'bear-focus';
+      accGlasses.style.display = 'block';
+      accHeadphones.style.display = 'none';
+      propsFocus.style.display = 'block';
+      propsBreak.style.display = 'none';
+      celebrateBanner.style.display = 'none';
+
+      // 표정 기본화
+      bearMouth.setAttribute('d', 'M 144,152 Q 150,158 156,152');
+      bearEyes.innerHTML = `
+        <circle cx="126" cy="132" r="6.5" fill="#2d1c14" />
+        <circle cx="128" cy="130" r="2.2" fill="#ffffff" />
+        <circle cx="174" cy="132" r="6.5" fill="#2d1c14" />
+        <circle cx="176" cy="130" r="2.2" fill="#ffffff" />
+      `;
+
+      // 집중 이펙트 (별, 전구)
+      fxElements.innerHTML = `
+        <g class="floating-bulb" transform="translate(42, 60)">
+          <circle cx="12" cy="12" r="10" fill="#fff3b0" />
+          <polygon points="12,2 14,9 21,12 14,15 12,22 10,15 3,12 10,9" fill="#fcd34d" />
+        </g>
+        <g class="floating-bulb" style="animation-delay: 1.5s;" transform="translate(235, 75)">
+          <polygon points="12,4 14,10 20,12 14,14 12,20 10,14 4,12 10,10" fill="#fcd34d" />
+        </g>
+      `;
+    }
+
+    function applyCharacterBreakVisuals() {
+      bearRoot.className = 'bear-break';
+      accGlasses.style.display = 'none';
+      accHeadphones.style.display = 'block';
+      propsFocus.style.display = 'none';
+      propsBreak.style.display = 'block';
+      celebrateBanner.style.display = 'none';
+
+      // 표정: 활짝 미소
+      bearMouth.setAttribute('d', 'M 142,152 Q 150,165 158,152');
+      bearEyes.innerHTML = `
+        <circle cx="126" cy="132" r="6.5" fill="#2d1c14" />
+        <circle cx="128" cy="130" r="2.2" fill="#ffffff" />
+        <circle cx="174" cy="132" r="6.5" fill="#2d1c14" />
+        <circle cx="176" cy="130" r="2.2" fill="#ffffff" />
+      `;
+
+      // 힐링 이펙트 (음표, 하트 버블)
+      fxElements.innerHTML = `
+        <g class="floating-bubble-note" transform="translate(45, 120)">
+          <text x="0" y="0" font-size="24" fill="#ff7e8e">♪</text>
+        </g>
+        <g class="floating-bubble-note" style="animation-delay: 1.2s;" transform="translate(240, 110)">
+          <text x="0" y="0" font-size="28" fill="#ffb47d">♬</text>
+        </g>
+        <g class="floating-bubble-note" style="animation-delay: 2.1s;" transform="translate(210, 60)">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ff99ab" transform="scale(0.8)"/>
+        </g>
+      `;
+    }
+
+    /* 종료 시 축하 캐릭터 모션 및 눈웃음 표정 */
+    function applyCharacterCelebrateVisuals() {
+      bearRoot.className = 'character-celebrate';
+      // 눈 질끈 감고 활짝 웃는 모양 (^ ^)
+      bearEyes.innerHTML = `
+        <path d="M 120,135 Q 126,126 132,135" stroke="#2d1c14" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <path d="M 168,135 Q 174,126 180,135" stroke="#2d1c14" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      `;
+      bearMouth.setAttribute('d', 'M 140,150 Q 150,170 160,150 Z'); // 큰 입벌림
+      celebrateBanner.style.display = 'block';
+      charSpeech.textContent = "와아! 멋지게 성공했어요! 짝짝짝! 👏🎉";
+    }
+
+    /* 타이머 제어 함수 */
+    function startTimer() {
+      if (remainingSeconds <= 0) {
+        remainingSeconds = totalSeconds;
+      }
+      isRunning = true;
+      btnToggleLabel.textContent = '잠깐 멈춤';
+      playIcon.innerHTML = `<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>`;
+      
+      // 사운드 동기화 시작 (사용자 제스처 컨텍스트)
+      initAudioEngine();
+      playCurrentBGM();
+
+      timerInterval = setInterval(() => {
+        if (remainingSeconds > 0) {
+          remainingSeconds--;
+          renderDisplay();
+        } else {
+          onTimerComplete();
+        }
+      }, 1000);
+
+      // 12초마다 응원 대사 갱신
+      if (!speechInterval) {
+        speechInterval = setInterval(updateSpeechBubble, 12000);
+      }
+    }
+
+    function pauseTimer() {
+      isRunning = false;
+      btnToggleLabel.textContent = '시작하기';
+      playIcon.innerHTML = `<polygon points="5 3 19 12 5 21 5 3"/>`;
+      clearInterval(timerInterval);
+      clearInterval(speechInterval);
+      speechInterval = null;
+      pauseCurrentBGM();
+    }
+
+    function resetTimer() {
+      pauseTimer();
+      stopConfetti();
+      remainingSeconds = totalSeconds;
+      if (currentMode === 'focus') {
+        applyCharacterFocusVisuals();
+      } else {
+        applyCharacterBreakVisuals();
+      }
+      renderDisplay();
+      updateSpeechBubble();
+    }
+
+    function onTimerComplete() {
+      pauseTimer();
+      renderDisplay();
+      applyCharacterCelebrateVisuals();
+      playChimeAlert(); // 실로폰 벨소리 재생
+      startConfetti();  // 화면 컨페티 효과
+
+      setTimeout(() => {
+        stopConfetti();
+        if (currentMode === 'focus') {
+          switchMode('break');
+        } else {
+          switchMode('focus');
+        }
+      }, 8000);
+    }
+
+    // 버튼 및 탭 이벤트 리스너
+    btnToggle.addEventListener('click', () => {
+      if (isRunning) pauseTimer();
+      else startTimer();
+    });
+
+    btnReset.addEventListener('click', resetTimer);
+
+    tabFocus.addEventListener('click', () => switchMode('focus'));
+    tabBreak.addEventListener('click', () => switchMode('break'));
+
+    btnSetCustom.addEventListener('click', () => {
+      const m = parseInt(customMinInput.value) || 0;
+      const s = parseInt(customSecInput.value) || 0;
+      const customTotal = Math.max(10, (m * 60) + s);
+      document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+      setDuration(customTotal);
+    });
+
+    // 전체화면 토글
+    btnFullscreen.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn(`Fullscreen error: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+    /* =========================================================================
+       2. Web Audio API 기반 순수 사운드 신디사이저 엔진 & 로컬 오디오
+       ========================================================================= */
+    let audioCtx = null;
+    let masterGain = null;
+    let bgmLoopId = null;
+    let rainSourceNode = null;
+    let isMuted = false;
+    let userAudioElement = null;
+
+    const bgmSelect = document.getElementById('bgm-select');
+    const volumeSlider = document.getElementById('volume-slider');
+    const btnMute = document.getElementById('btn-mute');
+    const muteIcon = document.getElementById('mute-icon');
+    const localAudioInput = document.getElementById('local-audio-input');
+    const customAudioOption = document.getElementById('custom-audio-option');
+
+    function initAudioEngine() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = parseFloat(volumeSlider.value);
+        masterGain.connect(audioCtx.destination);
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // 주파수 노트 헬퍼 (Hz)
+    const NOTES = {
+      C4: 261.63, D4: 293.66, E4: 329.63, G4: 392.00, A4: 440.00,
+      C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880.00,
+      F4: 349.23, B4: 493.88
+    };
+
+    // 맑은 실로폰/글록켄슈필 벨 단일 타건
+    function playChimeNote(freq, time, duration = 1.2, gainFactor = 0.4) {
+      if (!audioCtx || !masterGain) return;
+      const osc = audioCtx.createOscillator();
+      const noteGain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, time);
+
+      // 금속성 배음 약간 추가
+      const oscHarmonic = audioCtx.createOscillator();
+      const harmGain = audioCtx.createGain();
+      oscHarmonic.type = 'triangle';
+      oscHarmonic.frequency.setValueAtTime(freq * 2.76, time);
+
+      noteGain.gain.setValueAtTime(gainFactor, time);
+      noteGain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+      harmGain.gain.setValueAtTime(gainFactor * 0.25, time);
+      harmGain.gain.exponentialRampToValueAtTime(0.0001, time + (duration * 0.6));
+
+      osc.connect(noteGain);
+      oscHarmonic.connect(harmGain);
+      noteGain.connect(masterGain);
+      harmGain.connect(masterGain);
+
+      osc.start(time);
+      oscHarmonic.start(time);
+      osc.stop(time + duration);
+      oscHarmonic.stop(time + duration);
+    }
+
+    // 화음 코드 연주 (오르골 / 로파이)
+    function playChord(frequencies, time, duration = 3.0, type = 'sine', gainFactor = 0.15) {
+      if (!audioCtx || !masterGain) return;
+      frequencies.forEach(f => {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(f, time);
+
+        g.gain.setValueAtTime(0.001, time);
+        g.gain.linearRampToValueAtTime(gainFactor, time + 0.3);
+        g.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+        osc.connect(g);
+        g.connect(masterGain);
+
+        osc.start(time);
+        osc.stop(time + duration);
+      });
+    }
+
+    // 빗소리 화이트 노이즈 생성기
+    function startRainNoise() {
+      if (!audioCtx || !masterGain || rainSourceNode) return;
+      const bufferSize = audioCtx.sampleRate * 2;
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+
+      const whiteNoise = audioCtx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+      whiteNoise.loop = true;
+
+      // 부드러운 빗소리를 위한 로우패스 필터
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 650;
+
+      const rainGain = audioCtx.createGain();
+      rainGain.gain.value = 0.045; // 은은한 볼륨
+
+      whiteNoise.connect(filter);
+      filter.connect(rainGain);
+      rainGain.connect(masterGain);
+
+      whiteNoise.start();
+      rainSourceNode = { source: whiteNoise, gain: rainGain };
+    }
+
+    function stopRainNoise() {
+      if (rainSourceNode) {
+        try {
+          rainSourceNode.source.stop();
+          rainSourceNode.source.disconnect();
+        } catch(e) {}
+        rainSourceNode = null;
+      }
+    }
+
+    // 사운드 트랙 루프 엔진
+    let stepCounter = 0;
+    function scheduleBGMNotes() {
+      if (!isRunning || !audioCtx) return;
+      const selected = bgmSelect.value;
+      const now = audioCtx.currentTime;
+
+      if (selected === 'rain-chime') {
+        // 트랙 1: 차분한 빗소리 + 실로폰 펜타토닉 멜로디
+        startRainNoise();
+        const penta = [NOTES.C4, NOTES.D4, NOTES.E4, NOTES.G4, NOTES.A4, NOTES.C5, NOTES.E5];
+        if (stepCounter % 2 === 0) {
+          const note = penta[Math.floor(Math.random() * penta.length)];
+          playChimeNote(note, now + 0.1, 2.0, 0.22);
+        }
+      } else if (selected === 'music-box') {
+        // 트랙 2: 햇살 가득 산책길 (오르골 뮤직박스 멜로디)
+        stopRainNoise();
+        const musicBoxMelody = [
+          NOTES.C5, NOTES.E5, NOTES.G5, NOTES.E5,
+          NOTES.A4, NOTES.C5, NOTES.F4, NOTES.A4,
+          NOTES.G4, NOTES.B4, NOTES.D5, NOTES.G5,
+          NOTES.E5, NOTES.C5, NOTES.D5, NOTES.C5
+        ];
+        const pitch = musicBoxMelody[stepCounter % musicBoxMelody.length];
+        playChimeNote(pitch, now + 0.05, 1.0, 0.28);
+      } else if (selected === 'lofi-ambient') {
+        // 트랙 3: 포근한 휴식 & 로파이 비트
+        stopRainNoise();
+        if (stepCounter % 4 === 0) {
+          const chordProgression = [
+            [NOTES.C4, NOTES.E4, NOTES.G4, NOTES.B4], // Cmaj7
+            [NOTES.A4, NOTES.C5, NOTES.E5, NOTES.G4], // Am7
+            [NOTES.D4, NOTES.F4, NOTES.A4, NOTES.C5], // Dm7
+            [NOTES.G4, NOTES.B4, NOTES.D5, NOTES.F4]  // G7
+          ];
+          const chordIndex = Math.floor(stepCounter / 4) % chordProgression.length;
+          playChord(chordProgression[chordIndex], now + 0.05, 3.8, 'triangle', 0.12);
+        }
+      } else {
+        stopRainNoise();
+      }
+
+      stepCounter++;
+    }
+
+    function playCurrentBGM() {
+      const mode = bgmSelect.value;
+      if (mode === 'custom' && userAudioElement) {
+        userAudioElement.play().catch(e => console.log('Audio play blocked:', e));
+        return;
+      }
+      if (mode === 'none') {
+        stopRainNoise();
+        return;
+      }
+      if (!bgmLoopId) {
+        stepCounter = 0;
+        bgmLoopId = setInterval(scheduleBGMNotes, 900);
+      }
+    }
+
+    function pauseCurrentBGM() {
+      if (bgmLoopId) {
+        clearInterval(bgmLoopId);
+        bgmLoopId = null;
+      }
+      stopRainNoise();
+      if (userAudioElement) {
+        userAudioElement.pause();
+      }
+    }
+
+    // 00:00 종료 시 부드러운 실로폰 차임벨 연주 (도-미-솔-도)
+    function playChimeAlert() {
+      initAudioEngine();
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const chimeScore = [
+        { note: NOTES.C4, delay: 0.0 },
+        { note: NOTES.E4, delay: 0.25 },
+        { note: NOTES.G4, delay: 0.5 },
+        { note: NOTES.C5, delay: 0.75 },
+        { note: NOTES.G4, delay: 1.1 },
+        { note: NOTES.C5, delay: 1.4 }
+      ];
+      chimeScore.forEach(item => {
+        playChimeNote(item.note, now + item.delay, 2.2, 0.45);
+      });
+    }
+
+    // 볼륨 조절
+    volumeSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (masterGain) {
+        masterGain.gain.setValueAtTime(val, audioCtx.currentTime);
+      }
+      if (userAudioElement) {
+        userAudioElement.volume = val;
+      }
+      if (val === 0) {
+        muteIcon.textContent = '🔇';
+      } else {
+        muteIcon.textContent = '🔊';
+      }
+    });
+
+    // 음소거 토글
+    btnMute.addEventListener('click', () => {
+      if (!masterGain) return;
+      isMuted = !isMuted;
+      if (isMuted) {
+        masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+        if (userAudioElement) userAudioElement.muted = true;
+        muteIcon.textContent = '🔇';
+      } else {
+        const val = parseFloat(volumeSlider.value);
+        masterGain.gain.setValueAtTime(val, audioCtx.currentTime);
+        if (userAudioElement) userAudioElement.muted = false;
+        muteIcon.textContent = '🔊';
+      }
+    });
+
+    // 배경음악 변경 시
+    bgmSelect.addEventListener('change', () => {
+      pauseCurrentBGM();
+      if (isRunning) {
+        playCurrentBGM();
+      }
+    });
+
+    // 사용자 로컬 오디오 파일 등록 처리
+    localAudioInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const fileURL = URL.createObjectURL(file);
+        if (userAudioElement) {
+          userAudioElement.pause();
+        }
+        userAudioElement = new Audio(fileURL);
+        userAudioElement.loop = true;
+        userAudioElement.volume = parseFloat(volumeSlider.value);
+
+        customAudioOption.disabled = false;
+        customAudioOption.textContent = `📁 ${file.name.slice(0, 15)}...`;
+        bgmSelect.value = 'custom';
+
+        if (isRunning) {
+          playCurrentBGM();
+        }
+      }
+    });
+
+    /* =========================================================================
+       3. 축하 파스텔 컨페티(Confetti) 폭죽 애니메이션
+       ========================================================================= */
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    let confettiParticles = [];
+    let confettiAnimationId = null;
+    const CONFETTI_COLORS = ['#ff8da1', '#ffc078', '#ffe066', '#8ce99a', '#74c0fc', '#b197fc'];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class ConfettiPiece {
+      constructor() {
+        this.reset();
+      }
+      reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * -canvas.height;
+        this.size = Math.random() * 10 + 6;
+        this.color = CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)];
+        this.speedY = Math.random() * 4 + 3;
+        this.speedX = Math.random() * 3 - 1.5;
+        this.rotation = Math.random() * 360;
+        this.rotationSpeed = Math.random() * 10 - 5;
+      }
+      update() {
+        this.y += this.speedY;
+        this.x += this.speedX;
+        this.rotation += this.rotationSpeed;
+        if (this.y > canvas.height) {
+          this.reset();
+          this.y = 0;
+        }
+      }
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate((this.rotation * Math.PI) / 180);
+        ctx.fillStyle = this.color;
+        ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size * 0.7);
+        ctx.restore();
+      }
+    }
+
+    function startConfetti() {
+      canvas.style.display = 'block';
+      confettiParticles = Array.from({ length: 90 }, () => new ConfettiPiece());
+      
+      function renderConfetti() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        confettiParticles.forEach(p => {
+          p.update();
+          p.draw();
+        });
+        confettiAnimationId = requestAnimationFrame(renderConfetti);
+      }
+      renderConfetti();
+    }
+
+    function stopConfetti() {
+      if (confettiAnimationId) {
+        cancelAnimationFrame(confettiAnimationId);
+        confettiAnimationId = null;
+      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.style.display = 'none';
+      celebrateBanner.style.display = 'none';
+    }
+
+    /* 초기 렌더링 세팅 */
+    window.addEventListener('DOMContentLoaded', () => {
+      renderPresets();
+      renderDisplay();
+      applyCharacterFocusVisuals();
+    });
+  </script>
+</body>
+</html>
